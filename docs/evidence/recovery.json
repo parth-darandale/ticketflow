@@ -1,0 +1,15 @@
+{
+  "booking_id": "3aeff153-6517-4371-9c6b-b653fbef35a8",
+  "event_id": "07a9c0db-7ada-4085-b977-7eb361835a47",
+  "status": "confirmed",
+  "attempts": 2,
+  "stopped_container": "0238501d4eed",
+  "failure_command": "docker stop --time 0",
+  "remaining_workers_during_recovery": 2,
+  "original_worker_id": "0238501d4eed",
+  "recovery_worker_id": "fd53fb85764c",
+  "recovery_elapsed_seconds": 13.75,
+  "workers_restored": 3,
+  "confirmed_tickets": 1,
+  "available_seats": 2
+}

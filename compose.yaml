@@ -1,0 +1,75 @@
+name: ticketflow
+
+x-app: &app
+  image: ticketflow-app:local
+  build: .
+  environment: &environment
+    DATABASE_URL: postgresql://ticketflow:${POSTGRES_PASSWORD:-ticketflow-local-demo}@db:5432/ticketflow
+    PROCESSING_SECONDS: ${PROCESSING_SECONDS:-2}
+    LEASE_SECONDS: ${LEASE_SECONDS:-12}
+  init: true
+  restart: unless-stopped
+  networks: [booking]
+  logging:
+    driver: json-file
+    options:
+      max-size: "5m"
+      max-file: "2"
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ticketflow
+      POSTGRES_DB: ticketflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticketflow-local-demo}
+    volumes:
+      - booking-data:/var/lib/postgresql/data
+    networks: [booking]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketflow -d ticketflow"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  api:
+    <<: *app
+    ports:
+      - "127.0.0.1:${PORT:-8088}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker"]
+    deploy:
+      replicas: 3
+    stop_grace_period: 8s
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.worker", "--healthcheck"]
+      interval: 5s
+      timeout: 4s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  booking-data:
+
+networks:
+  booking:

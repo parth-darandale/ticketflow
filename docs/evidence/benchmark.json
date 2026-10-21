@@ -1,0 +1,43 @@
+{
+  "recorded_at_utc": "2026-10-20T18:52:05.826422+00:00",
+  "base_url": "http://127.0.0.1:8088",
+  "workload": "One ticket per asynchronous booking; separate demo event for each phase.",
+  "timing": "HTTP batch submission through all terminal bookings; excludes Docker scaling/startup.",
+  "limitations": "Local measurement includes API, database, polling and any other queued work; no linear-speedup guarantee.",
+  "measurements": [
+    {
+      "configured_workers": 1,
+      "running_worker_containers": 1,
+      "observed_worker_ids": [
+        "fd53fb85764c"
+      ],
+      "event_id": "18907538-0d28-4e5d-870a-7cfd04911d8d",
+      "bookings": 12,
+      "confirmed": 12,
+      "rejected": 0,
+      "submission_seconds": 0.125,
+      "elapsed_seconds": 24.781,
+      "bookings_per_second": 0.4842,
+      "attempts": 12
+    },
+    {
+      "configured_workers": 3,
+      "running_worker_containers": 3,
+      "observed_worker_ids": [
+        "0238501d4eed",
+        "8c2acbc85ad5",
+        "fd53fb85764c"
+      ],
+      "event_id": "03c56be6-222d-4c0a-a699-44091d40c4d9",
+      "bookings": 12,
+      "confirmed": 12,
+      "rejected": 0,
+      "submission_seconds": 0.109,
+      "elapsed_seconds": 8.672,
+      "bookings_per_second": 1.3838,
+      "attempts": 12
+    }
+  ],
+  "observed_speedup_one_to_three": 2.858,
+  "workers_restored": 3
+}

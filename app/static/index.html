@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152c2c">
+  <title>TicketFlow · Distributed booking studio</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to dashboard</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Application navigation">
+      <a class="brand" href="#main-content" aria-label="TicketFlow home"><span class="brand-mark" aria-hidden="true">t<span>f</span></span><span>ticketflow<span class="brand-caption">DISTRIBUTED BOOKING STUDIO</span></span></a>
+      <div class="workspace-label">WORKSPACE <span>01</span></div>
+      <nav class="navigation"><a href="#main-content" class="active"><span aria-hidden="true">◫</span> Overview <span class="nav-arrow" aria-hidden="true">↗</span></a><a href="#events-section"><span aria-hidden="true">◈</span> Discover events</a><a href="#bookings-section"><span aria-hidden="true">▤</span> Booking ledger</a><a href="#system-section"><span aria-hidden="true">⌁</span> System activity</a></nav>
+      <div class="sidebar-bottom"><span class="environment-tag"><i aria-hidden="true"></i> LOCAL DEMONSTRATION</span><p>One request. A message in the queue. A seat, safely reserved.</p><div class="sidebar-footer">Built to show how distributed systems work.</div></div>
+    </aside>
+
+    <main id="main-content" class="main-content" tabindex="-1">
+      <header class="topbar"><div class="breadcrumb">Workspace <span aria-hidden="true">/</span> <strong>Overview</strong></div><div class="connection-status" id="connection-status" role="status"><span class="connection-dot" aria-hidden="true"></span><span>Connecting to system</span></div></header>
+      <div class="page-content">
+        <section class="page-heading" aria-labelledby="page-title"><div><div class="eyebrow">YOUR NEXT EXPERIENCE, IN MOTION</div><h1 id="page-title">Good times. <em>Well coordinated.</em></h1><p>Find your next event. Follow every booking from request to reservation.</p></div><span class="demo-badge">A DISTRIBUTED SYSTEMS DEMO <span aria-hidden="true">↗</span></span></section>
+
+        <div class="connection-error" id="connection-error" role="alert" hidden></div>
+        <p class="data-scope-note" id="data-scope-note">Showing showcase bookings. Background demo runs are excluded.</p>
+        <section class="metrics-grid" aria-label="Live booking metrics">
+          <article class="metric-card"><div class="metric-label">Waiting in queue <span class="metric-symbol" aria-hidden="true">≋</span></div><div class="metric-value" id="metric-queued">—</div><div class="metric-note">Ready for a worker</div></article>
+          <article class="metric-card"><div class="metric-label">In progress <span class="metric-symbol" aria-hidden="true">↻</span></div><div class="metric-value" id="metric-processing">—</div><div class="metric-note">Reservations being checked</div></article>
+          <article class="metric-card metric-highlight"><div class="metric-label">Confirmed <span class="metric-symbol" aria-hidden="true">↗</span></div><div class="metric-value" id="metric-confirmed">—</div><div class="metric-note">Reservations confirmed</div></article>
+          <article class="metric-card"><div class="metric-label">Not reserved <span class="metric-symbol" aria-hidden="true">○</span></div><div class="metric-value" id="metric-rejected">—</div><div class="metric-note">Requests not fulfilled</div></article>
+        </section>
+
+        <div class="dashboard-grid">
+          <div class="primary-column">
+            <section class="events-section" id="events-section" aria-labelledby="events-title"><div class="section-heading"><div><span class="eyebrow">MAKE ROOM FOR SOMETHING GOOD</span><h2 id="events-title">On the calendar</h2></div><span class="section-detail" id="event-count">Loading events</span></div><div class="events-grid" id="events-grid" aria-busy="true"><div class="event-placeholder"><span class="skeleton skeleton-art"></span><span class="skeleton"></span><span class="skeleton skeleton-short"></span></div><div class="event-placeholder"><span class="skeleton skeleton-art"></span><span class="skeleton"></span><span class="skeleton skeleton-short"></span></div></div></section>
+
+            <section class="bookings-section panel" id="bookings-section" aria-labelledby="bookings-title"><div class="section-heading"><div><span class="eyebrow">EVERY REQUEST HAS A STORY</span><h2 id="bookings-title">Booking ledger</h2></div><div class="ledger-tools"><span class="live-label"><i aria-hidden="true"></i> Updates automatically</span><label class="demo-toggle"><input type="checkbox" id="include-demo"> Include demo runs</label></div></div><div id="booking-feedback" class="booking-feedback" role="status" aria-live="polite"></div><div class="table-scroll"><table class="booking-table"><caption class="sr-only">Recent ticket requests and their live processing status</caption><thead><tr><th scope="col">Booking / guest</th><th scope="col">Event</th><th scope="col">Tickets</th><th scope="col">Status</th></tr></thead><tbody id="bookings-body"><tr><td colspan="4" class="table-empty">Loading the booking ledger…</td></tr></tbody></table></div><p class="table-footnote">A request is confirmed only after a worker reserves inventory.</p></section>
+          </div>
+
+          <div class="secondary-column">
+            <section class="booking-panel panel" aria-labelledby="booking-title"><div class="panel-kicker"><span class="eyebrow">YOUR TICKET STARTS HERE</span><span class="ticket-outline" aria-hidden="true">↗</span></div><h2 id="booking-title">Make it a plan.</h2><p class="panel-description">Choose an event and send your request. We’ll show you what happens next.</p><form id="booking-form"><div class="field-group"><label for="event-select">Event</label><select id="event-select" name="event_id" required disabled><option value="">Loading events…</option></select></div><div id="selected-event-note" class="selected-event-note">Live availability will appear here.</div><div class="field-group"><label for="guest-alias">Your alias <span>Just a display name</span></label><input id="guest-alias" name="customer_name" type="text" minlength="1" maxlength="60" placeholder="e.g. weekend_explorer" autocomplete="nickname" required></div><div class="field-group"><label for="ticket-quantity">How many tickets?</label><div class="quantity-control"><button id="quantity-decrease" type="button" aria-label="Remove one ticket">−</button><input id="ticket-quantity" name="quantity" type="number" value="1" min="1" max="6" inputmode="numeric" required aria-label="Number of tickets"><button id="quantity-increase" type="button" aria-label="Add one ticket">+</button><span>tickets · up to 6</span></div></div><button class="booking-submit" id="booking-submit" type="submit" disabled><span>Request tickets</span><span aria-hidden="true">↗</span></button><div class="form-error" id="form-error" role="alert" hidden></div><p class="simulation-note"><span aria-hidden="true">ⓘ</span> Simulation only. No payment, email, or real ticket is involved.</p></form><div class="booking-steps" aria-label="How booking works"><span><b>01</b> Request</span><i aria-hidden="true">→</i><span><b>02</b> Queue</span><i aria-hidden="true">→</i><span><b>03</b> Reserve</span></div></section>
+
+            <section class="system-panel panel" id="system-section" aria-labelledby="system-title"><div class="section-heading"><div><span class="eyebrow">BEHIND THE RESERVATION</span><h2 id="system-title">The system at work</h2></div><span class="system-orbit" aria-hidden="true">⌁</span></div><p class="panel-description">Independent workers pick up queued requests and check available seats.</p><div class="workers-list" id="workers-list"><p class="empty-note">Waiting for worker information…</p></div><div class="queue-health" id="queue-health"><span>Outstanding jobs</span><strong>Connecting</strong></div><div class="activity-heading"><h3>Recent activity</h3><span aria-hidden="true">↓</span></div><ol class="activity-list" id="activity-list"><li class="empty-note">Worker activity will appear here.</li></ol></section>
+          </div>
+        </div>
+        <footer class="page-footer"><span><span class="footer-mark" aria-hidden="true">tf</span> TicketFlow</span><span>Explore the event. Observe the system.</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
