@@ -12,7 +12,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from . import db
+from . import db, leader
+from .clock import CLOCK, PROCESS_ID
 
 
 @asynccontextmanager
@@ -21,7 +22,7 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="TicketFlow", version="1.0.0", lifespan=lifespan,
+app = FastAPI(title="TicketFlow", version="1.1.0", lifespan=lifespan,
               description="Distributed demo reservations. No payments or real tickets are issued.")
 
 
@@ -109,11 +110,14 @@ def submit_booking(body: BookingRequest, response: Response,
                 body.event_id, body.customer_name, body.quantity):
             raise HTTPException(409, "This request key was already used for a different booking.")
         if inserted:
-            db.activity(conn, existing["id"], "queued", "Booking accepted into the durable queue")
+            stamp = CLOCK.tick()
+            conn.execute("UPDATE bookings SET last_logical_time=%s WHERE id=%s", (stamp, existing["id"]))
+            db.activity(conn, existing["id"], "queued", "API sent booking to the durable queue", logical_time=stamp)
         else:
             response.status_code = 200
         result = db.booking_row(conn, existing["id"])
         result["replayed"] = not bool(inserted)
+        result["trace_url"] = f"/api/bookings/{existing['id']}/trace"
         return result
 
 
@@ -124,6 +128,42 @@ def booking_detail(booking_id: uuid.UUID):
         if not result:
             raise HTTPException(404, "Booking not found.")
         return result
+
+
+@app.get("/api/bookings/{booking_id}/trace")
+def booking_trace(booking_id: uuid.UUID):
+    with db.connect() as conn:
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        booking = db.booking_row(conn, booking_id)
+        if not booking:
+            raise HTTPException(404, "Booking not found.")
+        events = conn.execute("""SELECT id,kind,message,worker_id,process_id,logical_time,received_time,
+            attempt,created_at FROM booking_activity WHERE booking_id=%s ORDER BY id""", (booking_id,)).fetchall()
+    incoming = booking["last_logical_time"]
+    if incoming is not None:
+        # Receipt of a persisted worker message advances the API's shared clock.
+        # This observation is returned only; polling does not append database rows.
+        events.append({"id": None, "kind": "observed", "message": "API received this booking state",
+                       "worker_id": None, "process_id": PROCESS_ID, "logical_time": CLOCK.receive(incoming),
+                       "received_time": incoming, "attempt": booking["attempts"],
+                       "created_at": datetime.now(timezone.utc), "ephemeral": True})
+    return {"booking_id": booking_id, "instrumented": incoming is not None, "events": events,
+            "explanation": "Process-local Lamport ticks order this booking's messages; they are not wall-clock time. "
+                           "Counters alone cannot prove causality between unrelated bookings. "
+                           "NULL timestamps identify historical events without instrumentation."}
+
+
+@app.get("/api/coordination")
+def coordination():
+    with db.connect() as conn:
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        return coordination_snapshot(conn)
+
+
+def coordination_snapshot(conn):
+    result = leader.snapshot(conn)
+    result.update(api_process_id=PROCESS_ID, api_logical_time=CLOCK.value)
+    return result
 
 
 @app.get("/api/dashboard")
@@ -137,7 +177,7 @@ def dashboard(include_demo: bool = False):
             b.status,b.worker_id,b.attempts,b.created_at,b.started_at,b.finished_at,b.rejection_reason
             FROM bookings b JOIN events e ON e.id=b.event_id WHERE NOT e.is_demo OR %s
             ORDER BY b.created_at DESC LIMIT 40""", (include_demo,)).fetchall()
-        workers = conn.execute("""SELECT w.id,w.started_at,w.heartbeat_at,w.processed_count,
+        workers = conn.execute("""SELECT w.id,w.started_at,w.heartbeat_at,w.processed_count,w.process_id,w.logical_time,
             b.id AS current_booking_id,w.heartbeat_at > clock_timestamp()-interval '10 seconds' AS online,
             CASE WHEN w.heartbeat_at <= clock_timestamp()-interval '10 seconds' THEN 'offline'
                  WHEN b.id IS NOT NULL THEN 'busy' ELSE 'idle' END AS status
@@ -160,6 +200,7 @@ def dashboard(include_demo: bool = False):
             JOIN bookings b ON b.id=a.booking_id JOIN events e ON e.id=b.event_id
             WHERE NOT e.is_demo OR %s ORDER BY a.id DESC LIMIT 20""", (include_demo,)).fetchall()
         return {"events": events, "bookings": bookings, "workers": workers, "metrics": totals, "activity": activity,
+                "coordination": coordination_snapshot(conn),
                 "server_time": datetime.now(timezone.utc),
                 "config": {"processing_seconds": db.PROCESSING_SECONDS, "lease_seconds": db.LEASE_SECONDS}}
 

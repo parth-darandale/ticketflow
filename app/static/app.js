@@ -7,7 +7,7 @@ const terminal = booking => booking && ['confirmed', 'rejected'].includes(bookin
 const formatNumber = value => Number.isFinite(value) ? new Intl.NumberFormat('en-IN').format(value) : '—';
 const formatPrice = value => Number.isFinite(value) ? new Intl.NumberFormat('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 0}).format(value / 100) : '—';
 const shortId = id => String(id ?? '').slice(0, 8).toUpperCase();
-const state = {dashboard: null, selectedEventId: '', submitting: false, refreshing: false, refreshAgain: false, timer: null, ownBookings: new Map(), trackedIds: new Set(), pendingIntent: null, connection: false, includeDemo: false};
+const state = {dashboard: null, selectedEventId: '', submitting: false, refreshing: false, refreshAgain: false, timer: null, ownBookings: new Map(), trackedIds: new Set(), pendingIntent: null, connection: false, includeDemo: false, traceBookingId: '', traceData: null, traceError: '', traceLoading: false, traceRequest: 0, fetchingTraceId: ''};
 
 async function fetchWithTimeout(url, options = {}, timeout = 10000) {
   const controller = new AbortController();
@@ -137,16 +137,18 @@ function allBookings() {
 
 function renderBookings() {
   const bookings = allBookings();
+  const focusedTraceId = document.activeElement?.dataset?.traceBookingId;
   $('#bookings-body').innerHTML = bookings.length ? bookings.map(booking => {
     const status = statuses.has(booking.status) ? booking.status : 'unknown';
     const statusLabel = status[0].toUpperCase() + status.slice(1);
     const detail = booking.rejection_reason || (booking.worker_id ? `Worker ${booking.worker_id}` : 'Waiting for a worker');
-    return `<tr><td><span class="booking-id" title="${escape(booking.id)}">#${escape(shortId(booking.id))}</span><div class="booking-guest" title="${escape(booking.customer_name)}">${escape(booking.customer_name)}</div></td><td><div class="booking-event" title="${escape(booking.event_title)}">${escape(booking.event_title)}</div><time class="booking-time" datetime="${escape(booking.created_at)}">${escape(timeLabel(booking.created_at))}</time></td><td>${formatNumber(booking.quantity)}</td><td><span class="status-pill status-${status}" title="${escape(detail)}">${escape(statusLabel)}</span>${booking.rejection_reason ? `<small class="rejection-detail">${escape(booking.rejection_reason)}</small>` : ''}</td></tr>`;
+    return `<tr><td><span class="booking-id" title="${escape(booking.id)}">#${escape(shortId(booking.id))}</span><div class="booking-guest" title="${escape(booking.customer_name)}">${escape(booking.customer_name)}</div><button class="trace-button" type="button" data-trace-booking-id="${escape(booking.id)}" aria-controls="trace-section" aria-expanded="${booking.id === state.traceBookingId}">View trace<span class="sr-only"> for booking #${escape(shortId(booking.id))}</span></button></td><td><div class="booking-event" title="${escape(booking.event_title)}">${escape(booking.event_title)}</div><time class="booking-time" datetime="${escape(booking.created_at)}">${escape(timeLabel(booking.created_at))}</time></td><td>${formatNumber(booking.quantity)}</td><td><span class="status-pill status-${status}" title="${escape(detail)}">${escape(statusLabel)}</span>${booking.rejection_reason ? `<small class="rejection-detail">${escape(booking.rejection_reason)}</small>` : ''}</td></tr>`;
   }).join('') : '<tr><td colspan="4" class="table-empty"><span class="empty-ledger-icon" aria-hidden="true">▤</span>No bookings yet. Your first request starts a new story.</td></tr>';
+  if (focusedTraceId) [...document.querySelectorAll('[data-trace-booking-id]')].find(button => button.dataset.traceBookingId === focusedTraceId)?.focus({preventScroll: true});
 }
 
 function renderWorkers() {
-  const workers = state.dashboard.workers ?? [];
+  const workers = state.dashboard?.workers ?? [];
   const online = workers.filter(worker => worker.online);
   const offline = workers.filter(worker => !worker.online);
   const historyOpen = $('#worker-history')?.open;
@@ -154,9 +156,89 @@ function renderWorkers() {
     const status = worker.online === false ? 'offline' : worker.status === 'busy' ? 'busy' : worker.status === 'idle' ? 'idle' : 'offline';
     const label = {busy: 'Processing', idle: 'Ready', offline: 'Offline'}[status];
     const task = status === 'busy' && worker.current_booking_id ? `Working on #${shortId(worker.current_booking_id)}` : status === 'offline' ? 'No recent heartbeat' : 'Listening for the next request';
-    return `<article class="worker-card"><span class="worker-icon" aria-hidden="true">${status === 'busy' ? '↻' : '◫'}</span><div class="worker-details"><div class="worker-name">${escape(worker.id)}</div><div class="worker-task">${escape(task)}${Number.isFinite(worker.processed_count) ? ` · ${formatNumber(worker.processed_count)} processed, all runs` : ''}</div></div><span class="worker-state ${status}">${label}</span></article>`;
+    return `<article class="worker-card"><span class="worker-icon" aria-hidden="true">${status === 'busy' ? '↻' : '◫'}</span><div class="worker-details"><div class="worker-name">${escape(worker.id)}${state.connection && state.dashboard.coordination?.active && state.dashboard.coordination.worker_id === worker.id ? ' <span class="worker-leader-label">Leader</span>' : ''}</div><div class="worker-task">${escape(task)}${Number.isFinite(worker.processed_count) ? ` · ${formatNumber(worker.processed_count)} processed, all runs` : ''}</div><div class="worker-task" title="${escape(worker.process_id || 'Historical process ID not recorded')}">${Number.isSafeInteger(worker.logical_time) ? `Last reported L ${formatNumber(worker.logical_time)}` : 'Logical clock not recorded'}</div></div><span class="worker-state ${status}">${label}</span></article>`;
   };
   $('#workers-list').innerHTML = (online.length ? online.map(workerCard).join('') : '<p class="empty-note">No workers are online. Requests remain queued until a worker is available.</p>') + (offline.length ? `<details class="worker-history" id="worker-history" ${historyOpen ? 'open' : ''}><summary>${offline.length} offline worker${offline.length === 1 ? '' : 's'}</summary><div class="workers-history-list">${offline.map(workerCard).join('')}</div></details>` : '');
+}
+
+function preciseTime(value) {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime()) ? date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) : 'Unavailable';
+}
+
+function renderCoordination() {
+  const coordination = state.dashboard?.coordination;
+  const badge = $('#leader-state');
+  if (!coordination || typeof coordination.active !== 'boolean') {
+    badge.textContent = 'Unavailable';
+    badge.className = 'leader-state is-waiting';
+    $('#leader-detail').innerHTML = '<p class="empty-note">The API has not supplied election information.</p>';
+    return;
+  }
+  const active = state.connection && coordination.active;
+  const processOpen = $('#leader-process')?.open;
+  badge.textContent = !state.connection ? 'Last received' : active ? 'Lease active' : 'Awaiting election';
+  badge.className = `leader-state ${active ? 'is-active' : 'is-waiting'}`;
+  $('#leader-detail').innerHTML = `<dl class="leader-facts"><div><dt>Worker</dt><dd class="leader-worker">${escape(coordination.worker_id || 'No current leader')}</dd></div><div><dt>Election epoch</dt><dd>${formatNumber(coordination.epoch)}</dd></div><div><dt>Lease expires</dt><dd><time datetime="${escape(coordination.lease_until || '')}">${escape(preciseTime(coordination.lease_until))}</time></dd></div><div><dt>Expired jobs recovered</dt><dd>${formatNumber(coordination.recovered_total)}</dd></div></dl>${coordination.owner_id ? `<details class="leader-process" id="leader-process" ${processOpen ? 'open' : ''}><summary>Leader process run</summary><code>${escape(coordination.owner_id)}</code></details>` : ''}`;
+  const history = Array.isArray(coordination.history) ? coordination.history : [];
+  if (Number.isSafeInteger(coordination.api_logical_time)) {
+    $('#leader-detail').insertAdjacentHTML('beforeend', `<p class="worker-task" title="${escape(coordination.api_process_id || '')}">API logical clock: L ${formatNumber(coordination.api_logical_time)} · ticks, not seconds</p>`);
+  }
+  $('#election-events').innerHTML = history.length ? history.slice(0, 5).map(event => `<li><strong>${escape(event.kind === 'elected' ? 'Leader elected' : event.kind === 'released' ? 'Lease released' : event.kind)}</strong><span>Epoch ${formatNumber(event.epoch)} · ${escape(event.worker_id || 'Unknown worker')}</span><time datetime="${escape(event.created_at || '')}">${escape(preciseTime(event.created_at))}</time></li>`).join('') : '<li class="empty-note">No election history yet.</li>';
+}
+
+function renderTrace() {
+  const selected = state.traceBookingId;
+  $('#trace-close').hidden = !selected;
+  $('#trace-footnote').hidden = !selected;
+  $('#trace-content').setAttribute('aria-busy', String(state.traceLoading));
+  if (!selected) {
+    $('#trace-status').textContent = 'Select View trace beside a booking to follow its API and worker events.';
+    $('#trace-content').innerHTML = '';
+    return;
+  }
+  if (state.traceError) {
+    $('#trace-status').textContent = `Trace for #${shortId(selected)}: ${state.traceError} Retrying automatically.`;
+  } else {
+    $('#trace-status').textContent = state.traceLoading ? `Loading trace for booking #${shortId(selected)}…` : `Booking #${shortId(selected)} · ${state.traceData?.instrumented ? 'Live logical-clock trace' : 'Historical booking'}`;
+  }
+  const trace = state.traceData;
+  if (!trace || trace.booking_id !== selected) {
+    $('#trace-content').innerHTML = '';
+    return;
+  }
+  const eventLabels = {queued: 'API queued request', claimed: 'Worker received job', confirmed: 'Worker confirmed booking', rejected: 'Worker rejected booking', recovered: 'Leader recovered expired job', observed: 'API observed result'};
+  const logical = value => Number.isSafeInteger(value) && value >= 0;
+  const events = Array.isArray(trace.events) ? trace.events : [];
+  $('#trace-content').innerHTML = `<p class="trace-booking-id">Request / booking ID <code>${escape(selected)}</code></p>${!trace.instrumented ? '<p class="trace-legacy">This booking predates logical-clock tracing. Its historical events have no Lamport timestamps; they are not reconstructed.</p>' : ''}<ol class="trace-events">${events.map((event, index) => `<li class="trace-event ${event.ephemeral ? 'trace-observation' : ''}"><span class="trace-step" aria-label="Event ${index + 1}">${index + 1}</span><div class="trace-event-content"><div class="trace-event-heading"><h3>${escape(eventLabels[event.kind] || event.kind || 'Booking event')}</h3><span class="logical-tick">${logical(event.logical_time) ? `L ${formatNumber(event.logical_time)}` : 'Uninstrumented'}</span></div><p>${escape(event.message || '')}</p><div class="trace-process"><span>Process run</span><code>${escape(event.process_id || 'Not recorded')}</code></div><div class="trace-event-meta">${logical(event.received_time) ? `<span>Received L ${formatNumber(event.received_time)} → local L ${formatNumber(event.logical_time)}</span>` : `<span>${logical(event.logical_time) ? 'Local / send event' : 'No logical timestamp recorded'}</span>`}${Number.isInteger(event.attempt) && event.attempt > 0 ? `<span>Attempt ${formatNumber(event.attempt)}</span>` : ''}${event.created_at ? `<time datetime="${escape(event.created_at)}">${escape(preciseTime(event.created_at))} <span class="sr-only">wall-clock time</span></time>` : ''}</div>${event.ephemeral ? '<small class="trace-read-note">Read-only observation for this API response</small>' : ''}</div></li>`).join('')}</ol>`;
+}
+
+async function refreshTrace(force = false) {
+  const bookingId = state.traceBookingId;
+  if (!bookingId || (!force && state.fetchingTraceId === bookingId)) return;
+  const request = ++state.traceRequest;
+  state.fetchingTraceId = bookingId;
+  state.traceLoading = !state.traceData;
+  if (state.traceLoading) renderTrace();
+  try {
+    const response = await fetchWithTimeout(`/api/bookings/${encodeURIComponent(bookingId)}/trace`, {cache: 'no-store'});
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw Error(requestError(data, `Trace unavailable (HTTP ${response.status}).`));
+    if (!data || data.booking_id !== bookingId || !Array.isArray(data.events)) throw Error('The trace response was incomplete.');
+    // Switching requests while a read is in flight must never show another booking's trace.
+    if (request !== state.traceRequest || bookingId !== state.traceBookingId) return;
+    state.traceData = data;
+    state.traceError = '';
+  } catch (error) {
+    if (request !== state.traceRequest || bookingId !== state.traceBookingId) return;
+    state.traceError = error.message;
+  } finally {
+    if (request === state.traceRequest && bookingId === state.traceBookingId) {
+      state.traceLoading = false;
+      state.fetchingTraceId = '';
+      renderTrace();
+    }
+  }
 }
 
 function renderActivity() {
@@ -294,9 +376,13 @@ async function refreshDashboard() {
     renderEvents();
     renderBookings();
     renderWorkers();
+    renderCoordination();
     renderActivity();
+    await refreshTrace();
   } catch (error) {
     setConnection(false, 'Connection interrupted');
+    renderCoordination();
+    renderWorkers();
     $('#connection-error').textContent = `${error.message} ${state.dashboard ? 'Showing the last received data; booking updates may be delayed.' : 'Start the API and its database/queue services to load live information.'} Reconnecting automatically.`;
     $('#connection-error').hidden = false;
     if (!state.dashboard) {
@@ -317,6 +403,32 @@ if (state.pendingIntent) showFormError('A previous request has an unknown outcom
 updateFormState();
 void refreshDashboard();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) void refreshDashboard(); });
+$('#bookings-body').addEventListener('click', event => {
+  const button = event.target.closest('[data-trace-booking-id]');
+  if (!button) return;
+  state.traceBookingId = button.dataset.traceBookingId;
+  state.traceData = null;
+  state.traceError = '';
+  state.traceLoading = true;
+  renderBookings();
+  renderTrace();
+  $('#trace-title').focus({preventScroll: true});
+  $('#trace-section').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'});
+  void refreshTrace(true);
+});
+$('#trace-close').addEventListener('click', () => {
+  const previous = state.traceBookingId;
+  state.traceBookingId = '';
+  state.traceData = null;
+  state.traceError = '';
+  state.traceLoading = false;
+  state.fetchingTraceId = '';
+  state.traceRequest += 1;
+  renderTrace();
+  renderBookings();
+  const previousButton = [...document.querySelectorAll('[data-trace-booking-id]')].find(button => button.dataset.traceBookingId === previous);
+  (previousButton || $('#bookings-title')).focus({preventScroll: true});
+});
 $('#include-demo').addEventListener('change', event => {
   state.includeDemo = event.target.checked;
   $('#data-scope-note').textContent = 'Updating the dashboard scope…';

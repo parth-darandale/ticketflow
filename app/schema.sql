@@ -51,3 +51,13 @@ CREATE TABLE IF NOT EXISTS booking_activity (
     created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 CREATE INDEX IF NOT EXISTS activity_booking ON booking_activity(booking_id, id);
+
+-- Additive migration: historical rows stay NULL, rather than inventing clocks
+-- for events that happened before instrumentation was deployed.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS last_logical_time bigint;
+ALTER TABLE booking_activity ADD COLUMN IF NOT EXISTS process_id text;
+ALTER TABLE booking_activity ADD COLUMN IF NOT EXISTS logical_time bigint;
+ALTER TABLE booking_activity ADD COLUMN IF NOT EXISTS received_time bigint;
+ALTER TABLE booking_activity ADD COLUMN IF NOT EXISTS attempt integer;
+ALTER TABLE workers ADD COLUMN IF NOT EXISTS process_id text;
+ALTER TABLE workers ADD COLUMN IF NOT EXISTS logical_time bigint;

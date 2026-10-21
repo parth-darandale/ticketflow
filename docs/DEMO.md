@@ -50,7 +50,7 @@ python scripts/verify_system.py --recovery
 
 The recovery scenario interrupts a worker handling a fixture booking and verifies that work can complete after its ownership expires. The lease lasts 12 seconds and is renewed every 2 seconds while the worker remains active. Recovery requires waiting for lease expiry and another worker's claim; it is not instantaneous.
 
-Explain: the queue row survives because it is stored in PostgreSQL. An expired lease allows a retry, and a changed fencing token prevents the previous owner from finalizing an outdated claim. Inventory and terminal booking status commit together, so recovery must not reserve the same booking's seats twice.
+Explain: the queue row survives because it is stored in PostgreSQL. The elected recovery leader requeues an expired claim; an available worker claims it with a new ownership token. Inventory and terminal booking status commit together, so recovery must not reserve the same booking's seats twice.
 
 The script restores three workers. A failure should be investigated through its output and service logs:
 
@@ -84,6 +84,18 @@ Point out that adding workers changes processing capacity without changing the A
 ```
 
 Reopen the dashboard and confirm previous bookings remain. `Stop-App.cmd` uses `docker compose down` without deleting the named database volume. After a PC reboot, start Docker Desktop before running `Start-App.cmd`.
+
+## 6. Demonstrate logical clocks and leader replacement
+
+```powershell
+python scripts/verify_syllabus.py --output artifacts/syllabus.json
+```
+
+The script identifies the current elected worker, pauses its two followers, and gives the leader an isolated booking. It interrupts that worker, resumes the followers, and verifies a different leader and larger epoch. After the booking lease expires, the new leader returns the abandoned job to pending; a worker completes attempt 2. The script verifies one inventory debit and restores three healthy workers even if an assertion fails.
+
+Select **Include demo runs**, locate the returned booking ID and choose **View trace**. The sequence is `queued -> claimed -> recovered -> claimed -> confirmed -> observed`. Compare each receive event's incoming timestamp with its larger local timestamp. The recovery leader and the worker that completes the job can be different processes.
+
+Point to **Recovery leader**: current worker, lease expiry, epoch and actual election history. A lease grants a bounded period of authority; every recovery transaction also checks its epoch. Other workers continue normal queue processing. Stopping the database or the whole PC is outside this failover demonstration.
 
 ## Short viva answers
 

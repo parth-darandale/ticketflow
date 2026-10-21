@@ -1,0 +1,451 @@
+{
+  "verified_at": "2026-10-21T12:02:40.806778+00:00",
+  "event_id": "c10e13f3-6082-467e-b903-7b71ec78b327",
+  "booking_id": "cb031dba-d049-40c6-8a3d-45f5e2ce6df6",
+  "original_leader": {
+    "worker_id": "83f64dbb0b2a",
+    "owner_id": "83f64dbb0b2a:4d784e60d8be4e56b43036ceca146c95",
+    "epoch": 9,
+    "lease_until": "2026-10-21T12:02:32.134308+00:00",
+    "recovered_total": 3,
+    "active": true,
+    "lease_seconds": 8,
+    "history": [
+      {
+        "id": 39,
+        "worker_id": "83f64dbb0b2a",
+        "owner_id": "83f64dbb0b2a:4d784e60d8be4e56b43036ceca146c95",
+        "epoch": 9,
+        "kind": "elected",
+        "created_at": "2026-10-21T12:00:34.301750+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 38,
+        "worker_id": "862d60d6ccee",
+        "owner_id": "862d60d6ccee:23686a4cb20d42ebb43b65285445075d",
+        "epoch": 8,
+        "kind": "released",
+        "created_at": "2026-10-21T12:00:26.464006+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 37,
+        "worker_id": "862d60d6ccee",
+        "owner_id": "862d60d6ccee:23686a4cb20d42ebb43b65285445075d",
+        "epoch": 8,
+        "kind": "elected",
+        "created_at": "2026-10-21T12:00:19.717843+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 13,
+        "worker_id": "ea5c23cb0778",
+        "owner_id": "ea5c23cb0778:2bcf4c3f371d4e75b96bc92561b7511c",
+        "epoch": 7,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:56:25.915088+00:00",
+        "recovered_count": 1
+      },
+      {
+        "id": 12,
+        "worker_id": "df1f73365c0d",
+        "owner_id": "df1f73365c0d:1ddeccc4742e4ac1917b91176524072f",
+        "epoch": 6,
+        "kind": "released",
+        "created_at": "2026-10-21T11:56:25.404056+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 11,
+        "worker_id": "df1f73365c0d",
+        "owner_id": "df1f73365c0d:1ddeccc4742e4ac1917b91176524072f",
+        "epoch": 6,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:55:54.509017+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 10,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:638015e9a2094df89e4214cb8c9f5b56",
+        "epoch": 5,
+        "kind": "released",
+        "created_at": "2026-10-21T11:55:46.783430+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 9,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:638015e9a2094df89e4214cb8c9f5b56",
+        "epoch": 5,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:54:34.196507+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 8,
+        "worker_id": "test-6b3ea447",
+        "owner_id": "queue-test:404b7885-9448-469d-a626-9967673abcb9",
+        "epoch": 4,
+        "kind": "released",
+        "created_at": "2026-10-21T11:54:31.893020+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 7,
+        "worker_id": "test-6b3ea447",
+        "owner_id": "queue-test:404b7885-9448-469d-a626-9967673abcb9",
+        "epoch": 4,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:54:31.811800+00:00",
+        "recovered_count": 1
+      },
+      {
+        "id": 6,
+        "worker_id": "test-25122a0d",
+        "owner_id": "queue-test:ba3b28bb-9ffe-4fac-98d7-afaacd026e2c",
+        "epoch": 3,
+        "kind": "released",
+        "created_at": "2026-10-21T11:54:31.630116+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 5,
+        "worker_id": "test-25122a0d",
+        "owner_id": "queue-test:ba3b28bb-9ffe-4fac-98d7-afaacd026e2c",
+        "epoch": 3,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:54:31.551002+00:00",
+        "recovered_count": 1
+      },
+      {
+        "id": 4,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:60c9b5f1ea684911b140eb217b889613",
+        "epoch": 2,
+        "kind": "released",
+        "created_at": "2026-10-21T11:54:29.964567+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 3,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:60c9b5f1ea684911b140eb217b889613",
+        "epoch": 2,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:51:37.464250+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 2,
+        "worker_id": "4a5cee730478",
+        "owner_id": "4a5cee730478:1d4c0055a0724cd7bd95dac10f439b62",
+        "epoch": 1,
+        "kind": "released",
+        "created_at": "2026-10-21T11:51:29.343368+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 1,
+        "worker_id": "4a5cee730478",
+        "owner_id": "4a5cee730478:1d4c0055a0724cd7bd95dac10f439b62",
+        "epoch": 1,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:49:10.879500+00:00",
+        "recovered_count": 0
+      }
+    ],
+    "api_process_id": "0bbda8893a99:4648c636d48547f08f3c65804486269e",
+    "api_logical_time": 40
+  },
+  "successor_leader": {
+    "worker_id": "439425c55355",
+    "owner_id": "439425c55355:ed9bd998b0774445b51ee8fa27db0a67",
+    "epoch": 10,
+    "lease_until": "2026-10-21T12:02:40.338574+00:00",
+    "recovered_total": 3,
+    "active": true,
+    "lease_seconds": 8,
+    "history": [
+      {
+        "id": 40,
+        "worker_id": "439425c55355",
+        "owner_id": "439425c55355:ed9bd998b0774445b51ee8fa27db0a67",
+        "epoch": 10,
+        "kind": "elected",
+        "created_at": "2026-10-21T12:02:32.339229+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 39,
+        "worker_id": "83f64dbb0b2a",
+        "owner_id": "83f64dbb0b2a:4d784e60d8be4e56b43036ceca146c95",
+        "epoch": 9,
+        "kind": "elected",
+        "created_at": "2026-10-21T12:00:34.301750+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 38,
+        "worker_id": "862d60d6ccee",
+        "owner_id": "862d60d6ccee:23686a4cb20d42ebb43b65285445075d",
+        "epoch": 8,
+        "kind": "released",
+        "created_at": "2026-10-21T12:00:26.464006+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 37,
+        "worker_id": "862d60d6ccee",
+        "owner_id": "862d60d6ccee:23686a4cb20d42ebb43b65285445075d",
+        "epoch": 8,
+        "kind": "elected",
+        "created_at": "2026-10-21T12:00:19.717843+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 13,
+        "worker_id": "ea5c23cb0778",
+        "owner_id": "ea5c23cb0778:2bcf4c3f371d4e75b96bc92561b7511c",
+        "epoch": 7,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:56:25.915088+00:00",
+        "recovered_count": 1
+      },
+      {
+        "id": 12,
+        "worker_id": "df1f73365c0d",
+        "owner_id": "df1f73365c0d:1ddeccc4742e4ac1917b91176524072f",
+        "epoch": 6,
+        "kind": "released",
+        "created_at": "2026-10-21T11:56:25.404056+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 11,
+        "worker_id": "df1f73365c0d",
+        "owner_id": "df1f73365c0d:1ddeccc4742e4ac1917b91176524072f",
+        "epoch": 6,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:55:54.509017+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 10,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:638015e9a2094df89e4214cb8c9f5b56",
+        "epoch": 5,
+        "kind": "released",
+        "created_at": "2026-10-21T11:55:46.783430+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 9,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:638015e9a2094df89e4214cb8c9f5b56",
+        "epoch": 5,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:54:34.196507+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 8,
+        "worker_id": "test-6b3ea447",
+        "owner_id": "queue-test:404b7885-9448-469d-a626-9967673abcb9",
+        "epoch": 4,
+        "kind": "released",
+        "created_at": "2026-10-21T11:54:31.893020+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 7,
+        "worker_id": "test-6b3ea447",
+        "owner_id": "queue-test:404b7885-9448-469d-a626-9967673abcb9",
+        "epoch": 4,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:54:31.811800+00:00",
+        "recovered_count": 1
+      },
+      {
+        "id": 6,
+        "worker_id": "test-25122a0d",
+        "owner_id": "queue-test:ba3b28bb-9ffe-4fac-98d7-afaacd026e2c",
+        "epoch": 3,
+        "kind": "released",
+        "created_at": "2026-10-21T11:54:31.630116+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 5,
+        "worker_id": "test-25122a0d",
+        "owner_id": "queue-test:ba3b28bb-9ffe-4fac-98d7-afaacd026e2c",
+        "epoch": 3,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:54:31.551002+00:00",
+        "recovered_count": 1
+      },
+      {
+        "id": 4,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:60c9b5f1ea684911b140eb217b889613",
+        "epoch": 2,
+        "kind": "released",
+        "created_at": "2026-10-21T11:54:29.964567+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 3,
+        "worker_id": "d7abea2adb1c",
+        "owner_id": "d7abea2adb1c:60c9b5f1ea684911b140eb217b889613",
+        "epoch": 2,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:51:37.464250+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 2,
+        "worker_id": "4a5cee730478",
+        "owner_id": "4a5cee730478:1d4c0055a0724cd7bd95dac10f439b62",
+        "epoch": 1,
+        "kind": "released",
+        "created_at": "2026-10-21T11:51:29.343368+00:00",
+        "recovered_count": 0
+      },
+      {
+        "id": 1,
+        "worker_id": "4a5cee730478",
+        "owner_id": "4a5cee730478:1d4c0055a0724cd7bd95dac10f439b62",
+        "epoch": 1,
+        "kind": "elected",
+        "created_at": "2026-10-21T11:49:10.879500+00:00",
+        "recovered_count": 0
+      }
+    ],
+    "api_process_id": "0bbda8893a99:4648c636d48547f08f3c65804486269e",
+    "api_logical_time": 41
+  },
+  "original_epoch": 9,
+  "successor_epoch": 10,
+  "stopped_container": "83f64dbb0b2a",
+  "failure_command": "docker pause leader; docker stop --signal SIGKILL --timeout 0 leader",
+  "remaining_workers_during_recovery": 2,
+  "stop_seconds": 0.391,
+  "election_seconds_after_stop": 6.281,
+  "recovery_seconds_after_stop": 14.625,
+  "booking": {
+    "id": "cb031dba-d049-40c6-8a3d-45f5e2ce6df6",
+    "event_id": "c10e13f3-6082-467e-b903-7b71ec78b327",
+    "event_title": "syllabus-failover-f18f90a3f787",
+    "customer_name": "Syllabus recovery guest",
+    "quantity": 1,
+    "status": "confirmed",
+    "worker_id": "a2d9d13a8d48",
+    "attempts": 2,
+    "created_at": "2026-10-21T12:02:25.329882+00:00",
+    "started_at": "2026-10-21T12:02:25.586734+00:00",
+    "finished_at": "2026-10-21T12:02:40.673463+00:00",
+    "rejection_reason": null,
+    "last_logical_time": 45
+  },
+  "booking_trace": [
+    {
+      "id": 633,
+      "kind": "queued",
+      "message": "API sent booking to the durable queue",
+      "worker_id": null,
+      "process_id": "0bbda8893a99:4648c636d48547f08f3c65804486269e",
+      "logical_time": 41,
+      "received_time": null,
+      "attempt": 0,
+      "created_at": "2026-10-21T12:02:25.331606+00:00"
+    },
+    {
+      "id": 634,
+      "kind": "claimed",
+      "message": "Worker received queued booking and started checking availability",
+      "worker_id": "83f64dbb0b2a",
+      "process_id": "83f64dbb0b2a:4d784e60d8be4e56b43036ceca146c95",
+      "logical_time": 42,
+      "received_time": 41,
+      "attempt": 1,
+      "created_at": "2026-10-21T12:02:25.588488+00:00"
+    },
+    {
+      "id": 635,
+      "kind": "recovered",
+      "message": "Leader requeued an expired booking (epoch 10); previous worker 83f64dbb0b2a",
+      "worker_id": "439425c55355",
+      "process_id": "439425c55355:ed9bd998b0774445b51ee8fa27db0a67",
+      "logical_time": 43,
+      "received_time": 42,
+      "attempt": 1,
+      "created_at": "2026-10-21T12:02:38.449507+00:00"
+    },
+    {
+      "id": 636,
+      "kind": "claimed",
+      "message": "Worker received queued booking and started checking availability",
+      "worker_id": "a2d9d13a8d48",
+      "process_id": "a2d9d13a8d48:c27632d7780b495a91f2d7861fa888dd",
+      "logical_time": 44,
+      "received_time": 43,
+      "attempt": 2,
+      "created_at": "2026-10-21T12:02:38.656587+00:00"
+    },
+    {
+      "id": 637,
+      "kind": "confirmed",
+      "message": "1 ticket(s) confirmed",
+      "worker_id": "a2d9d13a8d48",
+      "process_id": "a2d9d13a8d48:c27632d7780b495a91f2d7861fa888dd",
+      "logical_time": 45,
+      "received_time": null,
+      "attempt": 2,
+      "created_at": "2026-10-21T12:02:40.677629+00:00"
+    },
+    {
+      "id": null,
+      "kind": "observed",
+      "message": "API received this booking state",
+      "worker_id": null,
+      "process_id": "0bbda8893a99:4648c636d48547f08f3c65804486269e",
+      "logical_time": 46,
+      "received_time": 45,
+      "attempt": 2,
+      "created_at": "2026-10-21T12:02:40.803107+00:00",
+      "ephemeral": true
+    }
+  ],
+  "inventory": {
+    "id": "c10e13f3-6082-467e-b903-7b71ec78b327",
+    "slug": "demo-c10e13f36082467eb9037b71ec78b327",
+    "title": "syllabus-failover-f18f90a3f787",
+    "date_label": "DEMO EVENT",
+    "venue": "Local demo",
+    "category": "SCALING DEMO",
+    "description": "An isolated event for concurrency and scaling demonstrations.",
+    "total_seats": 3,
+    "available_seats": 2,
+    "price_cents": 0,
+    "accent": "teal",
+    "is_demo": true,
+    "created_at": "2026-10-21T12:02:25.097960+00:00",
+    "status_counts": {
+      "pending": 0,
+      "processing": 0,
+      "confirmed": 1,
+      "rejected": 0
+    },
+    "confirmed_tickets": 1
+  },
+  "lamport_strictly_increasing": true,
+  "causal_receives_verified": true,
+  "workers_restored": 3,
+  "restored_worker_ids": [
+    "439425c55355",
+    "83f64dbb0b2a",
+    "a2d9d13a8d48"
+  ],
+  "restored_workers_healthy": true
+}

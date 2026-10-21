@@ -1,5 +1,12 @@
 # TicketFlow
 
+Get the version with logical clocks and leader election:
+
+```powershell
+git clone --branch feature/ds-syllabus-extensions https://github.com/parth-darandale/ticketflow.git
+cd ticketflow
+```
+
 TicketFlow is a local distributed ticket-booking demonstration. A browser submits booking requests to an HTTP API; independent worker processes consume a durable PostgreSQL queue and reserve seats without overselling. Docker Compose starts the API, PostgreSQL and three worker containers on one PC.
 
 There are no actual payments, payment-provider integrations or production ticket sales.
@@ -50,11 +57,28 @@ The API and workers are separate processes that communicate through PostgreSQL. 
 
 1. The API records a booking as `pending`. A UUID `Idempotency-Key` makes a retry return the same booking; reusing the key with different request data returns HTTP 409.
 2. A worker claims a pending or expired job using a row lock with `FOR UPDATE SKIP LOCKED`. Other workers skip that locked row rather than claiming it simultaneously.
-3. A claimed booking becomes `processing`, with a 12-second lease renewed every 2 seconds. If a worker disappears, another worker can reclaim the expired lease.
+3. A claimed booking becomes `processing`, with a 12-second lease renewed every 2 seconds. If a worker disappears, the elected recovery leader returns its expired job to `pending`, and a free worker claims it again.
 4. A fencing token identifies the current claim. A worker whose claim was superseded cannot finalize the booking using its old token.
 5. An atomic inventory update reserves seats only when `available >= quantity`. The seat update and terminal booking state commit in the same database transaction. The outcome is `confirmed` or `rejected` when inventory is insufficient.
 
 This is durable queue delivery with retries and guarded finalization. It does not claim exactly-once execution: a job can be attempted more than once, while the transaction and ownership checks prevent a repeated reservation.
+
+## Logical clocks and leader election
+
+Each API and worker process has its own thread-safe Lamport clock and unique process-run ID. A booking carries its logical timestamp through the durable queue. Receivers apply `max(local, received) + 1`; local/send events increment their process clock. Choose **View trace** beside a booking to see API queueing, worker receipt, completion and API observation. A recovered job also shows the leader's recovery event and replacement worker's receipt. Logical ticks are separate from wall-clock timestamps and elapsed-time measurements. Counters alone do not prove causality between unrelated requests. Historical rows retain unknown timestamps rather than fabricated traces.
+
+Workers contend for a PostgreSQL-backed **8-second leader lease**, renewed every 2 seconds. The elected leader recovers expired booking claims; every worker still processes normal pending jobs. A replacement election advances the epoch. Recovery locks and validates the current lease owner and epoch in the same transaction as requeueing, so an old leader cannot recover jobs using a superseded epoch. The dashboard shows the current leader, election history and last-reported process clocks.
+
+This is database-mediated lease election, not the Bully/Ring algorithms or Raft/Paxos consensus. PostgreSQL remains the coordination authority. See [the syllabus mapping and protocol](docs/SYLLABUS.md).
+
+```powershell
+python -m unittest tests.test_clock tests.test_verify_syllabus -v
+python -m unittest tests.test_integration tests.test_trace -v
+docker compose exec -T api python -m unittest tests.test_election -v
+python scripts/verify_syllabus.py --output artifacts/syllabus.json
+```
+
+The last command performs a controlled failure of the currently elected worker while it owns an isolated booking, verifies another leader with a higher epoch, checks causal recovery and one inventory debit, then restores three healthy workers. It pauses only the identified TicketFlow followers during setup. Run it when no other experiment is changing worker counts.
 
 ## Verify and demonstrate
 
@@ -90,6 +114,8 @@ They check expired and superseded claims, duplicate finalization, a stale heartb
 | `GET /api/dashboard` | Events, bookings, workers, metrics and activity |
 | `POST /api/bookings` | Queue a booking; requires a UUID `Idempotency-Key` header |
 | `GET /api/bookings/{id}` | Inspect a booking's state |
+| `GET /api/bookings/{id}/trace` | Per-booking Lamport events and a read-only API observation |
+| `GET /api/coordination` | Current leader lease, epoch, process clock and election history |
 | `GET /api/events/{id}` | Inspect inventory, confirmed tickets and status counts |
 | `POST /api/demo/events` | Create a separate, hidden demonstration event |
 
@@ -118,26 +144,28 @@ This repository contains the application and measured technical evidence. Studen
 - [Docker Compose scaling](https://docs.docker.com/reference/cli/docker/compose/scale/): worker replicas are independent containers.
 - [Psycopg transaction management](https://www.psycopg.org/psycopg3/docs/basic/transactions.html): connection context managers commit successful blocks and roll back failed ones.
 
+Public application source: https://github.com/parth-darandale/ticketflow on branch `feature/ds-syllabus-extensions`. The public source history excludes the personal assignment PDF, college logo and student report generator.
+
 ## Working application evidence
 
-These screenshots show the running Docker Compose application. In the recorded concurrency experiment, six one-ticket orders competed for three seats: **3 confirmed, 3 rejected, 0 seats remaining**. The full [measured result](docs/evidence/report-oversell.json) contains the event inventory and all six terminal booking states. Display names are technical demonstration aliases.
+These screenshots show the running Docker Compose application. The recorded abrupt SIGKILL experiment elected a replacement recovery leader at epoch **10**, up from **9**, completed the booking on attempt **2** in **14.625 seconds**, and reserved its seat once. See the full [logical-clock and election evidence](docs/evidence/syllabus.json). Display names are technical demonstration aliases.
 
 **Dashboard:** live API status, three workers and reservation totals.
 
 ![Running application dashboard](docs/assets/submission/01-dashboard.jpg)
 
-**Booking request:** event selection, alias and ticket quantity.
+**Lamport trace:** queueing, worker receipt, completion and API observation carry causal logical timestamps.
 
-![Booking request form](docs/assets/submission/02-booking-request.jpg)
+![Per-booking Lamport logical-clock trace](docs/assets/submission/06-logical-clock.jpg)
 
 **Confirmed booking:** the ledger records the completed reservation.
 
 ![Confirmed booking in the ledger](docs/assets/submission/03-confirmed-booking.jpg)
 
-**Worker processing:** three independent workers handle queued requests.
+**Recovery leader:** the dashboard reports the elected owner, epoch and election history.
 
-![Three workers processing queued requests](docs/assets/submission/04-workers.jpg)
+![Recovery leader and election history](docs/assets/submission/07-leader-election.jpg)
 
-**Capacity limit:** the six-order experiment ends with three confirmations and three rejections.
+**Capacity limit:** six one-ticket orders against three seats produced three confirmations, three rejections and zero remaining seats. See the [recorded inventory result](docs/evidence/report-oversell.json).
 
 ![Three confirmed and three rejected bookings](docs/assets/submission/05-no-overselling.jpg)

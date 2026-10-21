@@ -15,9 +15,12 @@ from unittest.mock import patch
 class QueueInvariants(unittest.TestCase):
     def setUp(self):
         from app import db
+        from app import leader
         self.db = db
+        self.leader = leader
         self.event_id, self.booking_id = uuid.uuid4(), uuid.uuid4()
         self.worker_a, self.worker_b = f"test-{uuid.uuid4().hex[:8]}", f"test-{uuid.uuid4().hex[:8]}"
+        self.owner_id = f"queue-test:{uuid.uuid4()}"
         with db.connect() as conn:
             conn.execute("""INSERT INTO events(id,slug,title,date_label,venue,category,description,
                 total_seats,available_seats,is_demo) VALUES (%s,%s,'Invariant test','TEST','TEST','TEST','TEST',5,5,true)""",
@@ -28,6 +31,7 @@ class QueueInvariants(unittest.TestCase):
         db.register_worker(self.worker_b)
 
     def tearDown(self):
+        self.leader.release(self.worker_b, self.owner_id)
         with self.db.connect() as conn:
             conn.execute("DELETE FROM booking_activity WHERE booking_id=%s", (self.booking_id,))
             conn.execute("DELETE FROM bookings WHERE id=%s", (self.booking_id,))
@@ -38,6 +42,12 @@ class QueueInvariants(unittest.TestCase):
         with self.db.connect() as conn:
             conn.execute("UPDATE bookings SET lease_until=clock_timestamp()-interval '1 second' WHERE id=%s",
                          (self.booking_id,))
+
+    def recover_expired(self):
+        result = self.leader.step(self.worker_b, self.owner_id)
+        self.assertTrue(result["active"], result)
+        self.assertEqual(result["owner_id"], self.owner_id)
+        self.assertEqual(result["recovered_count"], 1)
 
     def state(self):
         with self.db.connect() as conn:
@@ -55,6 +65,7 @@ class QueueInvariants(unittest.TestCase):
         self.expire()
         self.assertIsNone(self.db.complete_booking(self.worker_a, old))
         self.assertEqual(self.state()["available_seats"], 5)
+        self.recover_expired()
         replacement = self.claim(self.worker_b)
         self.assertEqual(replacement["attempts"], 2)
         self.assertNotEqual(old["claim_token"], replacement["claim_token"])
@@ -70,6 +81,7 @@ class QueueInvariants(unittest.TestCase):
     def test_stale_heartbeat_cannot_extend_a_replacement_lease(self):
         old = self.claim(self.worker_a)
         self.expire()
+        self.recover_expired()
         replacement = self.claim(self.worker_b)
         before = self.state()["lease_until"]
         self.db.heartbeat(self.worker_a, old)

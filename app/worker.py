@@ -9,7 +9,8 @@ import time
 
 import psycopg
 
-from . import db
+from . import db, leader
+from .clock import PROCESS_ID
 
 log = logging.getLogger("ticketflow.worker")
 
@@ -25,6 +26,7 @@ def run():
     stopping = threading.Event()
     current_lock = threading.Lock()
     current = None
+    leader_epoch = None
 
     def stop(_signum, _frame):
         stopping.set()
@@ -33,14 +35,33 @@ def run():
     signal.signal(signal.SIGINT, stop)
     db.register_worker(worker_id)
 
+    def coordinate():
+        nonlocal leader_epoch
+        state = leader.step(worker_id)
+        previous_epoch = leader_epoch
+        leader_epoch = state["epoch"] if state["is_leader"] else None
+        if leader_epoch is not None and leader_epoch != previous_epoch:
+            log.info("Elected recovery leader worker=%s process=%s epoch=%s", worker_id, PROCESS_ID, leader_epoch)
+        if state["recovered_count"]:
+            log.info("Leader epoch=%s requeued %s expired booking(s)", leader_epoch, state["recovered_count"])
+
+    try:
+        coordinate()
+    except psycopg.Error:
+        log.exception("Initial leader election unavailable; booking processing will retry")
+
     def renew():
+        nonlocal leader_epoch
         while not stopping.wait(db.HEARTBEAT_SECONDS):
             with current_lock:
                 claim = current
             try:
                 db.heartbeat(worker_id, claim)
+                if not stopping.is_set():
+                    coordinate()
             except psycopg.Error:
-                log.exception("Heartbeat unavailable; an expired claim will be fenced")
+                leader_epoch = None
+                log.exception("Heartbeat/election unavailable; expired claims and leader epochs will be fenced")
 
     pulse = threading.Thread(target=renew, name="lease-heartbeat", daemon=True)
     pulse.start()
@@ -70,12 +91,16 @@ def run():
         stopping.set()
         pulse.join(timeout=3)
         try:
+            # An in-flight database operation must not reacquire after a release.
+            # If it has not returned, process exit leaves the lease to expire.
+            if not pulse.is_alive():
+                leader.release(worker_id, epoch=leader_epoch)
             with db.connect() as conn:
                 conn.execute("""UPDATE workers SET heartbeat_at=clock_timestamp()-interval '1 hour',
                     current_booking_id=NULL WHERE id=%s""", (worker_id,))
         except psycopg.Error:
             pass
-        log.info("Worker stopped; unfinished claims become eligible after their lease expires")
+        log.info("Worker stopped; the elected leader will recover unfinished claims after lease expiry")
 
 
 def main():
