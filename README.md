@@ -3,7 +3,7 @@
 Get the version with logical clocks and leader election:
 
 ```powershell
-git clone --branch feature/ds-syllabus-extensions https://github.com/parth-darandale/ticketflow.git
+git clone --branch main https://github.com/parth-darandale/ticketflow.git
 cd ticketflow
 ```
 
@@ -144,7 +144,7 @@ This repository contains the application and measured technical evidence. Studen
 - [Docker Compose scaling](https://docs.docker.com/reference/cli/docker/compose/scale/): worker replicas are independent containers.
 - [Psycopg transaction management](https://www.psycopg.org/psycopg3/docs/basic/transactions.html): connection context managers commit successful blocks and roll back failed ones.
 
-Public application source: https://github.com/parth-darandale/ticketflow on branch `feature/ds-syllabus-extensions`. The public source history excludes the personal assignment PDF, college logo and student report generator.
+Public application source: https://github.com/parth-darandale/ticketflow on branch `main`. The public source history excludes the personal assignment PDF, college logo and student report generator.
 
 ## Working application evidence
 
