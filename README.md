@@ -117,3 +117,27 @@ This repository contains the application and measured technical evidence. Studen
 - [Docker Compose startup order](https://docs.docker.com/compose/how-tos/startup-order/): dependency health checks gate service startup.
 - [Docker Compose scaling](https://docs.docker.com/reference/cli/docker/compose/scale/): worker replicas are independent containers.
 - [Psycopg transaction management](https://www.psycopg.org/psycopg3/docs/basic/transactions.html): connection context managers commit successful blocks and roll back failed ones.
+
+## Working application evidence
+
+These screenshots show the running Docker Compose application. In the recorded concurrency experiment, six one-ticket orders competed for three seats: **3 confirmed, 3 rejected, 0 seats remaining**. The full [measured result](docs/evidence/report-oversell.json) contains the event inventory and all six terminal booking states. Display names are technical demonstration aliases.
+
+**Dashboard:** live API status, three workers and reservation totals.
+
+![Running application dashboard](docs/assets/submission/01-dashboard.jpg)
+
+**Booking request:** event selection, alias and ticket quantity.
+
+![Booking request form](docs/assets/submission/02-booking-request.jpg)
+
+**Confirmed booking:** the ledger records the completed reservation.
+
+![Confirmed booking in the ledger](docs/assets/submission/03-confirmed-booking.jpg)
+
+**Worker processing:** three independent workers handle queued requests.
+
+![Three workers processing queued requests](docs/assets/submission/04-workers.jpg)
+
+**Capacity limit:** the six-order experiment ends with three confirmations and three rejections.
+
+![Three confirmed and three rejected bookings](docs/assets/submission/05-no-overselling.jpg)

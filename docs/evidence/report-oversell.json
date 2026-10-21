@@ -1,0 +1,114 @@
+{
+  "event": {
+    "id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+    "slug": "demo-0b039e1ebbb544dea3ca6c188d2d6881",
+    "title": "Report seat limit-dcba3aa02965",
+    "date_label": "DEMO EVENT",
+    "venue": "Local demo",
+    "category": "SCALING DEMO",
+    "description": "An isolated event for concurrency and scaling demonstrations.",
+    "total_seats": 3,
+    "available_seats": 0,
+    "price_cents": 0,
+    "accent": "teal",
+    "is_demo": true,
+    "created_at": "2026-10-21T11:28:58.373842+00:00",
+    "status_counts": {
+      "pending": 0,
+      "processing": 0,
+      "confirmed": 3,
+      "rejected": 3
+    },
+    "confirmed_tickets": 3
+  },
+  "bookings": [
+    {
+      "id": "5cf46580-4160-4b7b-8509-012650b97767",
+      "event_id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+      "event_title": "Report seat limit-dcba3aa02965",
+      "customer_name": "Seat limit guest 2",
+      "quantity": 1,
+      "status": "confirmed",
+      "worker_id": "169451d2f12f",
+      "attempts": 1,
+      "created_at": "2026-10-21T11:28:58.416273+00:00",
+      "started_at": "2026-10-21T11:28:58.479674+00:00",
+      "finished_at": "2026-10-21T11:29:00.521630+00:00",
+      "rejection_reason": null
+    },
+    {
+      "id": "bbee308f-c3b7-4e40-85f9-d8bd0fdd9947",
+      "event_id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+      "event_title": "Report seat limit-dcba3aa02965",
+      "customer_name": "Seat limit guest 1",
+      "quantity": 1,
+      "status": "confirmed",
+      "worker_id": "8487df0c5f22",
+      "attempts": 1,
+      "created_at": "2026-10-21T11:28:58.424861+00:00",
+      "started_at": "2026-10-21T11:28:58.643741+00:00",
+      "finished_at": "2026-10-21T11:29:00.678646+00:00",
+      "rejection_reason": null
+    },
+    {
+      "id": "e08d49e9-b1d9-4c93-a6c2-d657d6940a6c",
+      "event_id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+      "event_title": "Report seat limit-dcba3aa02965",
+      "customer_name": "Seat limit guest 3",
+      "quantity": 1,
+      "status": "confirmed",
+      "worker_id": "d522d46d77ee",
+      "attempts": 1,
+      "created_at": "2026-10-21T11:28:58.424651+00:00",
+      "started_at": "2026-10-21T11:28:58.484769+00:00",
+      "finished_at": "2026-10-21T11:29:00.536642+00:00",
+      "rejection_reason": null
+    },
+    {
+      "id": "14237cba-0e7e-464b-a047-221cc2f4a329",
+      "event_id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+      "event_title": "Report seat limit-dcba3aa02965",
+      "customer_name": "Seat limit guest 0",
+      "quantity": 1,
+      "status": "rejected",
+      "worker_id": "169451d2f12f",
+      "attempts": 1,
+      "created_at": "2026-10-21T11:28:58.427492+00:00",
+      "started_at": "2026-10-21T11:29:00.551054+00:00",
+      "finished_at": "2026-10-21T11:29:02.597075+00:00",
+      "rejection_reason": "Not enough seats remain for this booking."
+    },
+    {
+      "id": "9fa6be6d-e1c6-42eb-9e54-1881529e5801",
+      "event_id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+      "event_title": "Report seat limit-dcba3aa02965",
+      "customer_name": "Seat limit guest 5",
+      "quantity": 1,
+      "status": "rejected",
+      "worker_id": "8487df0c5f22",
+      "attempts": 1,
+      "created_at": "2026-10-21T11:28:58.446488+00:00",
+      "started_at": "2026-10-21T11:29:00.735309+00:00",
+      "finished_at": "2026-10-21T11:29:02.761568+00:00",
+      "rejection_reason": "Not enough seats remain for this booking."
+    },
+    {
+      "id": "53d78f11-e243-4f12-ae20-c364c0460941",
+      "event_id": "0b039e1e-bbb5-44de-a3ca-6c188d2d6881",
+      "event_title": "Report seat limit-dcba3aa02965",
+      "customer_name": "Seat limit guest 4",
+      "quantity": 1,
+      "status": "rejected",
+      "worker_id": "d522d46d77ee",
+      "attempts": 1,
+      "created_at": "2026-10-21T11:28:58.430444+00:00",
+      "started_at": "2026-10-21T11:29:00.571047+00:00",
+      "finished_at": "2026-10-21T11:29:02.610222+00:00",
+      "rejection_reason": "Not enough seats remain for this booking."
+    }
+  ],
+  "result": {
+    "confirmed": 3,
+    "rejected": 3
+  }
+}
