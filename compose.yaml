@@ -40,6 +40,11 @@ services:
 
   api:
     <<: *app
+    environment:
+      <<: *environment
+      TICKETFLOW_CONTROL_DIR: /run/ticketflow-control
+    volumes:
+      - ./.runtime/control:/run/ticketflow-control
     ports:
       - "127.0.0.1:${PORT:-8088}:8080"
     depends_on:

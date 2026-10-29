@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#152c2c">
   <title>TicketFlow · Distributed booking studio</title>
-  <link rel="stylesheet" href="/style.css?v=1.1.0">
-  <script src="/app.js?v=1.1.0" defer></script>
+  <link rel="stylesheet" href="/style.css?v=1.2.0">
+  <script src="/app.js?v=1.2.0" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to dashboard</a>
@@ -19,11 +19,12 @@
     </aside>
 
     <main id="main-content" class="main-content" tabindex="-1">
-      <header class="topbar"><div class="breadcrumb">Workspace <span aria-hidden="true">/</span> <strong>Overview</strong></div><div class="connection-status" id="connection-status" role="status"><span class="connection-dot" aria-hidden="true"></span><span>Connecting to system</span></div></header>
+      <header class="topbar"><div class="breadcrumb">Workspace <span aria-hidden="true">/</span> <strong>Overview</strong></div><div class="topbar-actions"><div class="connection-status" id="connection-status" role="status"><span class="connection-dot" aria-hidden="true"></span><span>Connecting to system</span></div><div class="shutdown-control"><button type="button" class="shutdown-button" id="shutdown-button" aria-haspopup="dialog" aria-controls="shutdown-dialog" aria-describedby="shutdown-hint" disabled><span aria-hidden="true">⏻</span> Stop TicketFlow</button><span class="sr-only" id="shutdown-hint">Checking shutdown availability.</span></div></div></header>
       <div class="page-content">
         <section class="page-heading" aria-labelledby="page-title"><div><div class="eyebrow">YOUR NEXT EXPERIENCE, IN MOTION</div><h1 id="page-title">Good times. <em>Well coordinated.</em></h1><p>Find your next event. Follow every booking from request to reservation.</p></div><span class="demo-badge">A DISTRIBUTED SYSTEMS DEMO <span aria-hidden="true">↗</span></span></section>
 
         <div class="connection-error" id="connection-error" role="alert" hidden></div>
+        <div class="shutdown-notice" id="shutdown-notice" role="status" tabindex="-1" hidden></div>
         <p class="data-scope-note" id="data-scope-note">Showing showcase bookings. Background demo runs are excluded.</p>
         <section class="metrics-grid" aria-label="Live booking metrics">
           <article class="metric-card"><div class="metric-label">Waiting in queue <span class="metric-symbol" aria-hidden="true">≋</span></div><div class="metric-value" id="metric-queued">—</div><div class="metric-note">Ready for a worker</div></article>
@@ -50,5 +51,13 @@
       </div>
     </main>
   </div>
+  <dialog class="shutdown-dialog" id="shutdown-dialog" aria-labelledby="shutdown-dialog-title" aria-describedby="shutdown-dialog-description">
+    <span class="eyebrow">LOCAL APPLICATION</span>
+    <h2 id="shutdown-dialog-title">Stop TicketFlow?</h2>
+    <p id="shutdown-dialog-description">This stops the API, workers and database. Your saved bookings stay preserved.</p>
+    <p class="shutdown-restart">To start again, run <strong>Start-App.cmd</strong> with Docker Desktop running. Your PC stays on.</p>
+    <p class="shutdown-dialog-error" id="shutdown-dialog-error" role="alert" hidden></p>
+    <div class="shutdown-dialog-actions"><button type="button" class="shutdown-cancel" id="shutdown-cancel" autofocus>Cancel</button><button type="button" class="shutdown-confirm" id="shutdown-confirm">Stop TicketFlow</button></div>
+  </dialog>
 </body>
 </html>

@@ -1,9 +1,9 @@
 # TicketFlow
 
-Get the version with logical clocks and leader election:
+Get this version with logical clocks, leader election and the local **Stop TicketFlow** button:
 
 ```powershell
-git clone --branch main https://github.com/parth-darandale/ticketflow.git
+git clone --branch feature/shutdown-button https://github.com/parth-darandale/ticketflow.git
 cd ticketflow
 ```
 
@@ -18,6 +18,10 @@ Install Docker Desktop with Docker Compose v2, select Linux containers, and wait
 Double-click **Start-App.cmd**. It builds the images, starts the database, API and three workers, waits for container health, checks the HTTP health endpoint, and opens [http://127.0.0.1:8088](http://127.0.0.1:8088). No host Python installation is required to run the app.
 
 Double-click **Stop-App.cmd** to stop the containers. The named PostgreSQL volume preserves events and bookings. After a reboot, start Docker Desktop and double-click **Start-App.cmd** again.
+
+The dashboard's **Stop TicketFlow** button stops only this application's API, workers and database after confirmation. Saved bookings remain in the database volume. Restart with **Start-App.cmd**. The Windows launcher starts a small hidden shutdown controller; it accepts a matching-session file request and runs only `docker compose -p ticketflow down`, without deleting volumes. It does not shut down the PC or Docker Desktop. Controller files and logs are local to the ignored `.runtime/control/` directory.
+
+Start the application using **Start-App.cmd** when you want the browser shutdown button. Starting with Docker Compose alone leaves that control unavailable when no fresh Windows controller is running; **Stop-App.cmd** continues to work.
 
 From PowerShell in this folder:
 
@@ -118,6 +122,8 @@ They check expired and superseded claims, duplicate finalization, a stale heartb
 | `GET /api/coordination` | Current leader lease, epoch, process clock and election history |
 | `GET /api/events/{id}` | Inspect inventory, confirmed tickets and status counts |
 | `POST /api/demo/events` | Create a separate, hidden demonstration event |
+| `GET /api/system/control` | Launcher-bound local shutdown-control availability; it exposes no control session token |
+| `POST /api/system/shutdown` | Same-origin local confirmation signal only; the Windows controller stops the fixed TicketFlow Compose project |
 
 A booking body contains `event_id`, `customer_name` and `quantity` from 1 to 6. A demo event body contains `title` and `total_seats`. Use `/docs` for the full request and response schemas.
 

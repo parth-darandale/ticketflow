@@ -7,7 +7,9 @@ const terminal = booking => booking && ['confirmed', 'rejected'].includes(bookin
 const formatNumber = value => Number.isFinite(value) ? new Intl.NumberFormat('en-IN').format(value) : '—';
 const formatPrice = value => Number.isFinite(value) ? new Intl.NumberFormat('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 0}).format(value / 100) : '—';
 const shortId = id => String(id ?? '').slice(0, 8).toUpperCase();
-const state = {dashboard: null, selectedEventId: '', submitting: false, refreshing: false, refreshAgain: false, timer: null, ownBookings: new Map(), trackedIds: new Set(), pendingIntent: null, connection: false, includeDemo: false, traceBookingId: '', traceData: null, traceError: '', traceLoading: false, traceRequest: 0, fetchingTraceId: ''};
+const state = {dashboard: null, selectedEventId: '', submitting: false, refreshing: false, refreshAgain: false, timer: null, ownBookings: new Map(), trackedIds: new Set(), pendingIntent: null, connection: false, includeDemo: false, traceBookingId: '', traceData: null, traceError: '', traceLoading: false, traceRequest: 0, fetchingTraceId: '', control: null, controlRefreshing: false, controlTimer: null, shutdownRequesting: false, shutdownAccepted: false, shutdownMonitorTimer: null};
+
+const shutdownLocked = () => state.shutdownRequesting || state.shutdownAccepted;
 
 async function fetchWithTimeout(url, options = {}, timeout = 10000) {
   const controller = new AbortController();
@@ -61,6 +63,101 @@ function setConnection(online, message) {
   status.classList.toggle('is-live', online);
   status.classList.toggle('is-offline', !online);
   if (status.lastElementChild.textContent !== message) status.lastElementChild.textContent = message;
+}
+
+function renderShutdownControl() {
+  const enabled = state.control?.enabled === true && state.control?.state === 'ready';
+  const button = $('#shutdown-button');
+  button.disabled = !enabled || state.submitting || shutdownLocked();
+  const hint = state.shutdownAccepted ? 'TicketFlow is stopping. Run Start-App.cmd to start again.' : state.shutdownRequesting ? 'Sending the shutdown request.' : state.submitting ? 'Wait for your booking request to finish before stopping TicketFlow.' : enabled ? 'Stop TicketFlow services while preserving saved bookings.' : 'Run Start-App.cmd to enable the shutdown button.';
+  button.title = hint;
+  $('#shutdown-hint').textContent = hint;
+}
+
+async function refreshControl() {
+  if (state.shutdownAccepted || state.controlRefreshing) return;
+  state.controlRefreshing = true;
+  clearTimeout(state.controlTimer);
+  try {
+    const response = await fetchWithTimeout('/api/system/control', {cache: 'no-store'}, 4000);
+    if (!response.ok) throw Error('Shutdown control is unavailable.');
+    const control = await response.json();
+    if (!control || typeof control.enabled !== 'boolean' || typeof control.state !== 'string') throw Error('Shutdown information is incomplete.');
+    if (state.shutdownAccepted) return;
+    state.control = control;
+    // Another open tab can initiate the same local shutdown.
+    if (control.state === 'stopping') acceptShutdown();
+  } catch {
+    if (!state.shutdownAccepted) state.control = null;
+  } finally {
+    state.controlRefreshing = false;
+    renderShutdownControl();
+    if (!state.shutdownAccepted) state.controlTimer = setTimeout(refreshControl, 3000);
+  }
+}
+
+function showShutdownNotice(message) {
+  $('#shutdown-notice').hidden = false;
+  $('#shutdown-notice').textContent = message;
+}
+
+function acceptShutdown() {
+  if (state.shutdownAccepted) return;
+  state.shutdownAccepted = true;
+  state.shutdownRequesting = false;
+  state.refreshAgain = false;
+  state.traceRequest += 1;
+  clearTimeout(state.timer);
+  clearTimeout(state.controlTimer);
+  $('#shutdown-dialog').close();
+  $('#connection-error').hidden = true;
+  setConnection(false, 'Stopping TicketFlow');
+  showShutdownNotice('Stopping TicketFlow… Your saved bookings are preserved. Run Start-App.cmd with Docker Desktop running to start again.');
+  updateFormState();
+  $('#shutdown-notice').focus({preventScroll: true});
+  void monitorShutdown(Date.now() + 20000);
+}
+
+async function monitorShutdown(deadline) {
+  try {
+    await fetchWithTimeout('/api/health', {cache: 'no-store'}, 1500);
+  } catch {
+    setConnection(false, 'TicketFlow stopped');
+    showShutdownNotice('TicketFlow stopped. Your saved bookings are preserved. Run Start-App.cmd with Docker Desktop running to start again, then reload this page.');
+    return;
+  }
+  if (Date.now() >= deadline) {
+    setConnection(false, 'Shutdown requested');
+    showShutdownNotice('Shutdown was requested, but TicketFlow is still responding. Run Stop-App.cmd if it stays online. Start-App.cmd starts it again.');
+    return;
+  }
+  state.shutdownMonitorTimer = setTimeout(() => void monitorShutdown(deadline), 1000);
+}
+
+async function requestShutdown() {
+  if (shutdownLocked() || state.submitting) return;
+  state.shutdownRequesting = true;
+  $('#shutdown-dialog-error').hidden = true;
+  $('#shutdown-confirm').disabled = true;
+  $('#shutdown-confirm').textContent = 'Stopping…';
+  $('#shutdown-cancel').disabled = true;
+  updateFormState();
+  try {
+    const response = await fetchWithTimeout('/api/system/shutdown', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-TicketFlow-Control': 'shutdown'}, body: JSON.stringify({confirm: true})}, 5000);
+    const result = await response.json().catch(() => null);
+    if (!response.ok) throw Error(requestError(result, `The shutdown request failed (HTTP ${response.status}).`));
+    if (response.status !== 202 || result?.accepted !== true) throw Error('The service did not confirm the shutdown request.');
+    acceptShutdown();
+  } catch (error) {
+    $('#shutdown-dialog-error').textContent = `${error.message} The shutdown outcome is not confirmed. Check whether TicketFlow is still running; Stop-App.cmd can stop it.`;
+    $('#shutdown-dialog-error').hidden = false;
+  } finally {
+    state.shutdownRequesting = false;
+    $('#shutdown-confirm').disabled = false;
+    $('#shutdown-confirm').textContent = 'Stop TicketFlow';
+    $('#shutdown-cancel').disabled = false;
+    updateFormState();
+  }
 }
 
 function eventList() {
@@ -214,6 +311,7 @@ function renderTrace() {
 }
 
 async function refreshTrace(force = false) {
+  if (shutdownLocked()) return;
   const bookingId = state.traceBookingId;
   if (!bookingId || (!force && state.fetchingTraceId === bookingId)) return;
   const request = ++state.traceRequest;
@@ -226,7 +324,7 @@ async function refreshTrace(force = false) {
     if (!response.ok) throw Error(requestError(data, `Trace unavailable (HTTP ${response.status}).`));
     if (!data || data.booking_id !== bookingId || !Array.isArray(data.events)) throw Error('The trace response was incomplete.');
     // Switching requests while a read is in flight must never show another booking's trace.
-    if (request !== state.traceRequest || bookingId !== state.traceBookingId) return;
+    if (state.shutdownAccepted || request !== state.traceRequest || bookingId !== state.traceBookingId) return;
     state.traceData = data;
     state.traceError = '';
   } catch (error) {
@@ -247,19 +345,23 @@ function renderActivity() {
 }
 
 function updateFormState() {
-  const locked = state.submitting || Boolean(state.pendingIntent);
+  const locked = state.submitting || Boolean(state.pendingIntent) || shutdownLocked();
   const event = eventList().find(item => item.id === state.selectedEventId);
   $('#event-select').disabled = locked || eventList().length === 0;
   $('#guest-alias').disabled = locked;
   $('#ticket-quantity').disabled = locked;
   $('#quantity-decrease').disabled = locked || Number($('#ticket-quantity').value) <= 1;
   $('#quantity-increase').disabled = locked || Number($('#ticket-quantity').value) >= 6;
-  $('#booking-submit').disabled = state.submitting || (!state.pendingIntent && (!state.connection || !event || event.available_seats === 0));
+  $('#booking-submit').disabled = shutdownLocked() || state.submitting || (!state.pendingIntent && (!state.connection || !event || event.available_seats === 0));
   $('#booking-submit').firstElementChild.textContent = state.submitting ? 'Sending request…' : state.pendingIntent ? 'Retry the same request' : 'Request tickets';
   document.querySelectorAll('[data-event-id]').forEach(button => {
     const item = eventList().find(event => event.id === button.dataset.eventId);
     button.disabled = locked || item?.available_seats === 0;
   });
+  $('#include-demo').disabled = shutdownLocked();
+  $('#trace-close').disabled = shutdownLocked();
+  document.querySelectorAll('[data-trace-booking-id]').forEach(button => { button.disabled = shutdownLocked(); });
+  renderShutdownControl();
 }
 
 function requestError(data, fallback) {
@@ -269,7 +371,7 @@ function requestError(data, fallback) {
 }
 
 async function submitIntent() {
-  if (state.submitting || !state.pendingIntent) return;
+  if (shutdownLocked() || state.submitting || !state.pendingIntent) return;
   state.submitting = true;
   showFormError('');
   updateFormState();
@@ -302,7 +404,7 @@ async function submitIntent() {
 
 $('#booking-form').addEventListener('submit', event => {
   event.preventDefault();
-  if (state.submitting) return;
+  if (shutdownLocked() || state.submitting) return;
   if (!state.pendingIntent) {
     if (!$('#booking-form').reportValidity()) return;
     const name = $('#guest-alias').value.trim();
@@ -316,7 +418,7 @@ $('#booking-form').addEventListener('submit', event => {
 $('#event-select').addEventListener('change', event => { state.selectedEventId = event.target.value; showFormError(''); renderEvents(); });
 $('#events-grid').addEventListener('click', event => {
   const button = event.target.closest('[data-event-id]');
-  if (!button || state.pendingIntent || state.submitting) return;
+  if (!button || state.pendingIntent || state.submitting || shutdownLocked()) return;
   state.selectedEventId = button.dataset.eventId;
   showFormError('');
   renderEvents();
@@ -325,6 +427,7 @@ $('#events-grid').addEventListener('click', event => {
 });
 
 function changeQuantity(amount) {
+  if (shutdownLocked()) return;
   const input = $('#ticket-quantity');
   input.value = Math.max(1, Math.min(6, (Number(input.value) || 1) + amount));
   updateFormState();
@@ -350,11 +453,13 @@ async function refreshOwnBookings() {
 
 function scheduleRefresh() {
   clearTimeout(state.timer);
+  if (state.shutdownAccepted) return;
   const outstanding = allBookings().some(booking => !terminal(booking));
   state.timer = setTimeout(refreshDashboard, outstanding || state.submitting ? 1000 : 2000);
 }
 
 async function refreshDashboard() {
+  if (state.shutdownAccepted) return;
   if (state.refreshing) { state.refreshAgain = true; return; }
   state.refreshing = true;
   clearTimeout(state.timer);
@@ -365,10 +470,11 @@ async function refreshDashboard() {
     const data = await response.json();
     if (!Array.isArray(data.events) || !Array.isArray(data.bookings) || typeof data.metrics !== 'object' || data.metrics === null) throw Error('The dashboard response was incomplete.');
     // A scope change during an in-flight poll must not relabel the old scope's data.
-    if (requestedScope !== state.includeDemo) return;
+    if (state.shutdownAccepted || requestedScope !== state.includeDemo) return;
     state.dashboard = data;
     $('#data-scope-note').textContent = state.includeDemo ? 'Metrics, ledger and activity include demo runs. Featured events stay unchanged.' : 'Showing showcase bookings. Background demo runs are excluded.';
     await refreshOwnBookings();
+    if (state.shutdownAccepted) return;
     const workers = (data.workers ?? []).filter(worker => worker.online).length;
     setConnection(true, `API live · ${workers} worker${workers === 1 ? '' : 's'} online`);
     $('#connection-error').hidden = true;
@@ -380,6 +486,7 @@ async function refreshDashboard() {
     renderActivity();
     await refreshTrace();
   } catch (error) {
+    if (state.shutdownAccepted) return;
     setConnection(false, 'Connection interrupted');
     renderCoordination();
     renderWorkers();
@@ -394,7 +501,8 @@ async function refreshDashboard() {
     updateFormState();
   } finally {
     state.refreshing = false;
-    if (state.refreshAgain) { state.refreshAgain = false; state.timer = setTimeout(refreshDashboard, 0); }
+    if (state.shutdownAccepted) { state.refreshAgain = false; }
+    else if (state.refreshAgain) { state.refreshAgain = false; state.timer = setTimeout(refreshDashboard, 0); }
     else scheduleRefresh();
   }
 }
@@ -402,10 +510,11 @@ async function refreshDashboard() {
 if (state.pendingIntent) showFormError('A previous request has an unknown outcome. Retry the same request to recover its status safely.');
 updateFormState();
 void refreshDashboard();
-document.addEventListener('visibilitychange', () => { if (!document.hidden) void refreshDashboard(); });
+void refreshControl();
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !state.shutdownAccepted) { void refreshDashboard(); void refreshControl(); } });
 $('#bookings-body').addEventListener('click', event => {
   const button = event.target.closest('[data-trace-booking-id]');
-  if (!button) return;
+  if (!button || shutdownLocked()) return;
   state.traceBookingId = button.dataset.traceBookingId;
   state.traceData = null;
   state.traceError = '';
@@ -417,6 +526,7 @@ $('#bookings-body').addEventListener('click', event => {
   void refreshTrace(true);
 });
 $('#trace-close').addEventListener('click', () => {
+  if (shutdownLocked()) return;
   const previous = state.traceBookingId;
   state.traceBookingId = '';
   state.traceData = null;
@@ -430,7 +540,18 @@ $('#trace-close').addEventListener('click', () => {
   (previousButton || $('#bookings-title')).focus({preventScroll: true});
 });
 $('#include-demo').addEventListener('change', event => {
+  if (shutdownLocked()) return;
   state.includeDemo = event.target.checked;
   $('#data-scope-note').textContent = 'Updating the dashboard scope…';
   void refreshDashboard();
 });
+
+$('#shutdown-button').addEventListener('click', () => {
+  if (shutdownLocked() || state.submitting || state.control?.enabled !== true) return;
+  $('#shutdown-dialog-error').hidden = true;
+  $('#shutdown-dialog').showModal();
+  $('#shutdown-cancel').focus();
+});
+$('#shutdown-cancel').addEventListener('click', () => $('#shutdown-dialog').close());
+$('#shutdown-dialog').addEventListener('cancel', event => { if (state.shutdownRequesting) event.preventDefault(); });
+$('#shutdown-confirm').addEventListener('click', () => void requestShutdown());

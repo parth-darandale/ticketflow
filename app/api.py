@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from . import db, leader
 from .clock import CLOCK, PROCESS_ID
+from .control import router as control_router
 
 
 @asynccontextmanager
@@ -22,8 +23,9 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="TicketFlow", version="1.1.0", lifespan=lifespan,
+app = FastAPI(title="TicketFlow", version="1.2.0", lifespan=lifespan,
               description="Distributed demo reservations. No payments or real tickets are issued.")
+app.include_router(control_router)
 
 
 @app.exception_handler(psycopg.Error)
